@@ -6,18 +6,20 @@
 //  Copyright © 2017 s2mh. All rights reserved.
 //
 
-#import "ViewController.h"
-
-#import "QBImagePickerController.h"
-#import <AssetsLibrary/AssetsLibrary.h>
 #import <AVKit/AVKit.h>
 
-@interface ViewController () <QBImagePickerControllerDelegate>
-//@interface ViewController () <QBImagePickerControllerDelegate, AVPlayerViewControllerDelegate>
+#import "ViewController.h"
+#import "MyVideoEditor.h"
+
+#import "QBImagePickerController.h"
+
+
+@interface ViewController () <QBImagePickerControllerDelegate, UIAlertViewDelegate>
 
 @property (nonatomic, strong) PHCachingImageManager *imageManager;
-@property (nonatomic, strong) NSMutableArray<AVPlayerItem *> *playerItems;
-@property (nonatomic, strong) NSMutableArray<AVAsset *> *assetItems;
+@property (nonatomic, strong) NSMutableArray<AVAsset *> *assets;
+
+@property (nonatomic, strong) MyVideoEditor *editor;
 
 @end
 
@@ -25,29 +27,8 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    // Do any additional setup after loading the view, typically from a nib.
+    self.view.tintColor = [UIColor greenColor];
 }
-
-
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
-
-
-//- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-//    [super touchesEnded:touches withEvent:event];
-//    
-//    QBImagePickerController *ipc = [QBImagePickerController new];
-//    ipc.delegate = self;
-//    ipc.mediaType = QBImagePickerMediaTypeVideo;
-//    ipc.allowsMultipleSelection = YES;
-//    ipc.showsNumberOfSelectedAssets = YES;
-//    ipc.maximumNumberOfSelection = 3;
-////    ipc.minimumNumberOfSelection = 3;
-//    
-//    [self presentViewController:ipc animated:YES completion:^{}];
-//}
 
 
 - (IBAction)selectVideos:(id)sender {
@@ -57,11 +38,22 @@
     ipc.allowsMultipleSelection = YES;
     ipc.showsNumberOfSelectedAssets = YES;
     ipc.maximumNumberOfSelection = 3;
-    //    ipc.minimumNumberOfSelection = 3;
+    ipc.minimumNumberOfSelection = 3;
     
     [self presentViewController:ipc animated:YES completion:^{}];
 }
 
+- (IBAction)playEditedVideo:(id)sender {
+    if (!self.assets.count) {
+        [[[UIAlertView alloc] initWithTitle:@"Please select 3 videos!"
+                                    message:nil
+                                   delegate:nil
+                          cancelButtonTitle:@"OK"
+                          otherButtonTitles:nil] show];
+    } else {
+        [self playVideo];
+    }
+}
 
 #pragma mark - QBImagePickerControllerDelegate
 
@@ -71,124 +63,69 @@
     if (!assets.count) {
         return;
     } else {
-        [self.playerItems removeAllObjects];
-        [self.assetItems removeAllObjects];
+        [self.assets removeAllObjects];
     }
     
-//    [self handleAssetAtIndex:0 inArray:assets];
-    [self mergeAssetAtIndex:0 inArray:assets];
+    dispatch_group_t dispatchGroup = dispatch_group_create();
+    
+    [assets enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        dispatch_group_enter(dispatchGroup);
+        PHAsset *asset = assets[idx];
+        [self handleAsset:asset inGroup:dispatchGroup];
+    }];
+    
+    dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^(){
+        [self editVideo];
+    });
 }
 
 - (void)qb_imagePickerControllerDidCancel:(QBImagePickerController *)imagePickerController {
     [imagePickerController dismissViewControllerAnimated:YES completion:nil];
 }
 
+#pragma mark UIAlertViewDelegate
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
+    if (buttonIndex == 1) {
+        [self playVideo];
+    }
+}
+
 #pragma mark - Private
 
-- (void)playVideoWithURL:(NSURL *)url {
-    AVPlayerViewController *avpvc = [[AVPlayerViewController alloc] init];
-    avpvc.player = [AVPlayer playerWithURL:url];
-    avpvc.allowsPictureInPicturePlayback = YES;
-    [self presentViewController:avpvc animated:YES completion:nil];
-}
-
-- (void)playVideoWithQueuePlayer:(AVQueuePlayer *)queuePlayer {
-    AVPlayerViewController *avpvc = [[AVPlayerViewController alloc] init];
-    avpvc.player = queuePlayer;
-    avpvc.allowsPictureInPicturePlayback = YES;
-    [self presentViewController:avpvc animated:YES completion:nil];
-}
-
-- (void)handleAssetAtIndex:(NSUInteger)index inArray:(NSArray *)assets {
+- (void)handleAsset:(PHAsset *)asset inGroup:(dispatch_group_t)group {
     __weak typeof(self) weakSelf = self;
-    if (index < assets.count) {
-        PHAsset *asset = assets[index];
-        [self.imageManager requestPlayerItemForVideo:asset
-                                             options:nil
-                                       resultHandler:^(AVPlayerItem * _Nullable playerItem, NSDictionary * _Nullable info) {
-                                           if ([playerItem isKindOfClass:[AVPlayerItem class]]) {
-                                               [weakSelf.playerItems addObject:playerItem];
-                                               [weakSelf handleAssetAtIndex:(index + 1) inArray:assets];
-                                           } else {
-                                               NSLog(@"invalid video %ld", index);
-                                           }
-                                       }];
-    } else {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self playVideoWithQueuePlayer:[AVQueuePlayer queuePlayerWithItems:self.playerItems]];
-        });
-    }
+    [self.imageManager requestAVAssetForVideo:asset
+                                      options:nil
+                                resultHandler:^(AVAsset *__nullable asset, AVAudioMix *__nullable audioMix, NSDictionary *__nullable info) {
+                                    dispatch_group_leave(group);
+                                    
+                                    if ([asset isKindOfClass:[AVAsset class]]) {
+                                        [weakSelf.assets addObject:asset];
+                                    } else {
+                                        NSLog(@"invalid video %ld", (unsigned long)index);
+                                    }
+                                }];
 }
 
-
-- (void)mergeAssetAtIndex:(NSUInteger)index inArray:(NSArray *)assets {
-    __weak typeof(self) weakSelf = self;
-    if (index < assets.count) {
-        PHAsset *asset = assets[index];
-        [self.imageManager requestAVAssetForVideo:asset
-                                             options:nil
-                                       resultHandler:^(AVAsset *__nullable asset, AVAudioMix *__nullable audioMix, NSDictionary *__nullable info) {
-                                           if ([asset isKindOfClass:[AVAsset class]]) {
-                                               [weakSelf.assetItems addObject:asset];
-                                               [weakSelf mergeAssetAtIndex:(index + 1) inArray:assets];
-                                           } else {
-                                               NSLog(@"invalid video %ld", index);
-                                           }
-                                       }];
-    } else {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self mergeVideoInArray:self.assetItems];
-        });
-    }
-}
-
-- (void)mergeVideoInArray:(NSArray<AVAsset *> *)assets {
-    
-//     AVAsset *firstAsset = ;
-//     AVAsset *secondAsset;
-//     AVAsset *audioAsset;
-    
-    
-    // 1 - Create AVMutableComposition object. This object will hold your AVMutableCompositionTrack instances.
-    AVMutableComposition *mixComposition = [[AVMutableComposition alloc] init];
-    // 2 - Video track
-    AVMutableCompositionTrack *track = [mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo
-                                                                   preferredTrackID:kCMPersistentTrackID_Invalid];
-    CMTime startTime = kCMTimeZero;
-    for (AVAsset *asset in assets) {
-        [track insertTimeRange:CMTimeRangeMake(kCMTimeZero, asset.duration)
-                       ofTrack:[[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0] atTime:kCMTimeZero error:nil];
-        startTime = CMTimeAdd(startTime, asset.duration);
-    }
-    
-//    // 3 - Audio track
-//    if (audioAsset!=nil){
-//        AVMutableCompositionTrack *AudioTrack = [mixComposition addMutableTrackWithMediaType:AVMediaTypeAudio
-//                                                                            preferredTrackID:kCMPersistentTrackID_Invalid];
-//        [AudioTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, CMTimeAdd(firstAsset.duration, secondAsset.duration))
-//                            ofTrack:[[audioAsset tracksWithMediaType:AVMediaTypeAudio] objectAtIndex:0] atTime:kCMTimeZero error:nil];
-//    }
-    // 4 - Get path
+- (void)exportVideo {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSLog(@"documentsDirectory %@", documentsDirectory);
     NSString *myPathDocs =  [documentsDirectory stringByAppendingPathComponent:
-                             [NSString stringWithFormat:@"mergeVideo-%d.mov",arc4random() % 1000]];
+                             [NSString stringWithFormat:@"MyEditedVideo-%d.mov",arc4random() % 1000]];
     NSURL *url = [NSURL fileURLWithPath:myPathDocs];
-    // 5 - Create exporter
-    AVAssetExportSession *exporter = [[AVAssetExportSession alloc] initWithAsset:mixComposition
-                                                                      presetName:AVAssetExportPresetHighestQuality];
-    exporter.outputURL=url;
-    exporter.outputFileType = AVFileTypeQuickTimeMovie;
+    AVAssetExportSession *exporter = [AVAssetExportSession exportSessionWithAsset:self.editor.playerItem.asset
+                                                                       presetName:AVAssetExportPresetHighestQuality];
+    exporter.outputURL = url;
+    exporter.outputFileType = AVFileTypeMPEG4;
     exporter.shouldOptimizeForNetworkUse = YES;
     [exporter exportAsynchronouslyWithCompletionHandler:^{
         dispatch_async(dispatch_get_main_queue(), ^{
-            NSLog(@"status dd %ld *** %@", (long)exporter.status, exporter.error);
             [self exportDidFinish:exporter];
         });
     }];
-    NSLog(@"status aa %ld *** %@", (long)exporter.status, exporter.error);
 }
+
 
 - (void)exportDidFinish:(AVAssetExportSession *)session {
     if (session.status == AVAssetExportSessionStatusCompleted) {
@@ -208,12 +145,35 @@
             [albumChangeRequest addAssets:@[assetPlaceholder]];
         } completionHandler:^(BOOL success, NSError *error) {
             if (success) {
-                [self playVideoWithURL:outputURL];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [[[UIAlertView alloc] initWithTitle:@"A TriVideo has been created and saved!"
+                                                message:nil
+                                               delegate:self
+                                      cancelButtonTitle:@"OK"
+                                      otherButtonTitles:@"Open", nil] show];
+                });
             } else {
                 NSLog(@"Failed to add asset: %@", error);
             }
         }];
     }
+}
+
+- (void)editVideo {
+    [self.editor edit];
+    [self exportVideo];
+}
+
+- (void)playVideo {
+    AVPlayerItem *editedPlayerItem = [self.editor playerItem];
+    if (!editedPlayerItem) {
+        return;
+    }
+    
+    AVPlayerViewController *avpvc = [[AVPlayerViewController alloc] init];
+    avpvc.player = [AVPlayer playerWithPlayerItem:editedPlayerItem];
+    avpvc.allowsPictureInPicturePlayback = YES;
+    [self presentViewController:avpvc animated:YES completion:nil];
 }
 
 #pragma mark - Accessor
@@ -225,18 +185,21 @@
     return _imageManager;
 }
 
-- (NSMutableArray<AVPlayerItem *> *)playerItems {
-    if (!_playerItems) {
-        _playerItems = [NSMutableArray array];
+- (NSMutableArray<AVAsset *> *)assets {
+    if (!_assets) {
+        _assets = [NSMutableArray array];
     }
-    return  _playerItems;
+    return  _assets;
 }
 
-- (NSMutableArray<AVAsset *> *)assetItems {
-    if (!_assetItems) {
-        _assetItems = [NSMutableArray array];
+- (MyVideoEditor *)editor {
+    if (!_editor) {
+        _editor = [[MyVideoEditor alloc] init];
+        _editor.clips = self.assets;
+        _editor.videoHeight = 300.0f;
+        _editor.videoWidth = 400.0f;
     }
-    return  _assetItems;
+    return _editor;
 }
 
 @end

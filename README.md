@@ -1,2 +1,0 @@
-# TriVideo
-Personal Test Demo

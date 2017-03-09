@@ -13,6 +13,7 @@
 		6A225D261E6D8F9800EC95F1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A225D241E6D8F9800EC95F1 /* Main.storyboard */; };
 		6A225D281E6D8F9800EC95F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A225D271E6D8F9800EC95F1 /* Assets.xcassets */; };
 		6A225D2B1E6D8F9800EC95F1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A225D291E6D8F9800EC95F1 /* LaunchScreen.storyboard */; };
+		6AD252751E712E8700D6E14F /* MyVideoEditor.m in Sources */ = {isa = PBXBuildFile; fileRef = 6AD252741E712E8700D6E14F /* MyVideoEditor.m */; };
 		E77EADED905760F53BBDAF5B /* libPods-TriVideo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B477E7F89F2ED885B381AC9A /* libPods-TriVideo.a */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +28,8 @@
 		6A225D271E6D8F9800EC95F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6A225D2A1E6D8F9800EC95F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6A225D2C1E6D8F9800EC95F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6AD252731E712E8700D6E14F /* MyVideoEditor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyVideoEditor.h; sourceTree = "<group>"; };
+		6AD252741E712E8700D6E14F /* MyVideoEditor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyVideoEditor.m; sourceTree = "<group>"; };
 		88C4BB6091C1B22A804C67DA /* Pods-TriVideo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TriVideo.debug.xcconfig"; path = "Pods/Target Support Files/Pods-TriVideo/Pods-TriVideo.debug.xcconfig"; sourceTree = "<group>"; };
 		99D315B9E3A9291C59253300 /* Pods-TriVideo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TriVideo.release.xcconfig"; path = "Pods/Target Support Files/Pods-TriVideo/Pods-TriVideo.release.xcconfig"; sourceTree = "<group>"; };
 		B477E7F89F2ED885B381AC9A /* libPods-TriVideo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TriVideo.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -74,6 +77,8 @@
 				6A225D291E6D8F9800EC95F1 /* LaunchScreen.storyboard */,
 				6A225D2C1E6D8F9800EC95F1 /* Info.plist */,
 				6A225D1B1E6D8F9800EC95F1 /* Supporting Files */,
+				6AD252731E712E8700D6E14F /* MyVideoEditor.h */,
+				6AD252741E712E8700D6E14F /* MyVideoEditor.m */,
 			);
 			path = TriVideo;
 			sourceTree = "<group>";
@@ -228,6 +233,7 @@
 			files = (
 				6A225D231E6D8F9800EC95F1 /* ViewController.m in Sources */,
 				6A225D201E6D8F9800EC95F1 /* AppDelegate.m in Sources */,
+				6AD252751E712E8700D6E14F /* MyVideoEditor.m in Sources */,
 				6A225D1D1E6D8F9800EC95F1 /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
