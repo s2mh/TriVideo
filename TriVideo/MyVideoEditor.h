@@ -18,6 +18,7 @@
 @property (nonatomic, assign) CMTime videoTimeLength;
 
 @property (nonatomic, readonly, strong) AVMutableComposition *composition;
+@property (nonatomic, readonly, strong) AVMutableVideoComposition *videoComposition;
 @property (nonatomic, readonly, strong) AVPlayerItem *playerItem;
 
 - (void)edit;

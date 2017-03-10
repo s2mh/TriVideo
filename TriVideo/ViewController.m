@@ -21,13 +21,15 @@
 
 @property (nonatomic, strong) MyVideoEditor *editor;
 
+@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *loadingView;
+
 @end
 
 @implementation ViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.tintColor = [UIColor greenColor];
+    self.view.tintColor = [UIColor blackColor];
 }
 
 
@@ -68,9 +70,7 @@
     
     dispatch_group_t dispatchGroup = dispatch_group_create();
     
-    [assets enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        dispatch_group_enter(dispatchGroup);
-        PHAsset *asset = assets[idx];
+    [assets enumerateObjectsUsingBlock:^(PHAsset *asset, NSUInteger idx, BOOL * _Nonnull stop) {
         [self handleAsset:asset inGroup:dispatchGroup];
     }];
     
@@ -94,74 +94,85 @@
 #pragma mark - Private
 
 - (void)handleAsset:(PHAsset *)asset inGroup:(dispatch_group_t)group {
+    dispatch_group_enter(group);
     __weak typeof(self) weakSelf = self;
     [self.imageManager requestAVAssetForVideo:asset
                                       options:nil
                                 resultHandler:^(AVAsset *__nullable asset, AVAudioMix *__nullable audioMix, NSDictionary *__nullable info) {
-                                    dispatch_group_leave(group);
-                                    
                                     if ([asset isKindOfClass:[AVAsset class]]) {
                                         [weakSelf.assets addObject:asset];
-                                    } else {
-                                        NSLog(@"invalid video %ld", (unsigned long)index);
                                     }
+                                    dispatch_group_leave(group);
                                 }];
 }
 
 - (void)exportVideo {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSString *myPathDocs =  [documentsDirectory stringByAppendingPathComponent:
-                             [NSString stringWithFormat:@"MyEditedVideo-%d.mov",arc4random() % 1000]];
+    NSString *myPathDocs = [documentsDirectory stringByAppendingPathComponent:
+                            [NSString stringWithFormat:@"MyEditedVideo-%d.mov",arc4random() % 1000]];
     NSURL *url = [NSURL fileURLWithPath:myPathDocs];
     AVAssetExportSession *exporter = [AVAssetExportSession exportSessionWithAsset:self.editor.playerItem.asset
                                                                        presetName:AVAssetExportPresetHighestQuality];
     exporter.outputURL = url;
     exporter.outputFileType = AVFileTypeMPEG4;
-    exporter.shouldOptimizeForNetworkUse = YES;
+    exporter.videoComposition = self.editor.videoComposition;
     [exporter exportAsynchronouslyWithCompletionHandler:^{
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self exportDidFinish:exporter];
+            if (exporter.status == AVAssetExportSessionStatusCompleted) {
+                [self exportDidFinish:exporter];
+            } else {
+                [[[UIAlertView alloc] initWithTitle:@"Failed to export videos"
+                                            message:nil
+                                           delegate:nil
+                                  cancelButtonTitle:@"OK"
+                                  otherButtonTitles:nil] show];
+            }
         });
     }];
 }
 
 
 - (void)exportDidFinish:(AVAssetExportSession *)session {
+    [self.loadingView stopAnimating];
     if (session.status == AVAssetExportSessionStatusCompleted) {
         NSURL *outputURL = session.outputURL;
         
-        [[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
-            PHFetchResult<PHAssetCollection *> *albums = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeAlbum
-                                                                                                  subtype:PHAssetCollectionSubtypeSmartAlbumVideos
-                                                                                                  options:nil];
-            PHAssetCollection *album = [albums firstObject];
-            // Request creating an asset from the image.
-            PHAssetChangeRequest *createAssetRequest = [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:outputURL];
-            // Request editing the album.
-            PHAssetCollectionChangeRequest *albumChangeRequest = [PHAssetCollectionChangeRequest changeRequestForAssetCollection:album];
-            // Get a placeholder for the new asset and add it to the album editing request.
-            PHObjectPlaceholder *assetPlaceholder = [createAssetRequest placeholderForCreatedAsset];
-            [albumChangeRequest addAssets:@[assetPlaceholder]];
-        } completionHandler:^(BOOL success, NSError *error) {
-            if (success) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [[[UIAlertView alloc] initWithTitle:@"A TriVideo has been created and saved!"
-                                                message:nil
-                                               delegate:self
-                                      cancelButtonTitle:@"OK"
-                                      otherButtonTitles:@"Open", nil] show];
-                });
-            } else {
-                NSLog(@"Failed to add asset: %@", error);
-            }
-        }];
+        [[PHPhotoLibrary sharedPhotoLibrary]
+         performChanges:^{
+             PHFetchResult<PHAssetCollection *> *albums = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeAlbum
+                                                                                                   subtype:PHAssetCollectionSubtypeSmartAlbumVideos
+                                                                                                   options:nil];
+             
+             PHAssetCollection *album = [albums firstObject];
+             PHAssetChangeRequest *createAssetRequest = [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:outputURL];
+             PHAssetCollectionChangeRequest *albumChangeRequest = [PHAssetCollectionChangeRequest changeRequestForAssetCollection:album];
+             PHObjectPlaceholder *assetPlaceholder = [createAssetRequest placeholderForCreatedAsset];
+             [albumChangeRequest addAssets:@[assetPlaceholder]];
+         }
+         
+         completionHandler:^(BOOL success, NSError *error) {
+             if (success) {
+                 dispatch_async(dispatch_get_main_queue(), ^{
+                     [[[UIAlertView alloc] initWithTitle:@"Videos has been created and saved!"
+                                                 message:nil
+                                                delegate:self
+                                       cancelButtonTitle:@"OK"
+                                       otherButtonTitles:@"Play", nil] show];
+                 });
+             } else {
+                 NSLog(@"Failed to add asset: %@", error);
+             }
+         }];
     }
 }
 
 - (void)editVideo {
+    self.editor.clips = self.assets;
     [self.editor edit];
     [self exportVideo];
+    
+    [self.loadingView startAnimating];
 }
 
 - (void)playVideo {
@@ -172,13 +183,12 @@
     
     AVPlayerViewController *avpvc = [[AVPlayerViewController alloc] init];
     avpvc.player = [AVPlayer playerWithPlayerItem:editedPlayerItem];
-    avpvc.allowsPictureInPicturePlayback = YES;
     [self presentViewController:avpvc animated:YES completion:nil];
 }
 
 #pragma mark - Accessor
 
-- (PHCachingImageManager *)imageManager{
+- (PHCachingImageManager *)imageManager {
     if (!_imageManager) {
         _imageManager = [PHCachingImageManager new];
     }
@@ -189,15 +199,14 @@
     if (!_assets) {
         _assets = [NSMutableArray array];
     }
-    return  _assets;
+    return _assets;
 }
 
 - (MyVideoEditor *)editor {
     if (!_editor) {
         _editor = [[MyVideoEditor alloc] init];
-        _editor.clips = self.assets;
-        _editor.videoHeight = 300.0f;
-        _editor.videoWidth = 400.0f;
+        _editor.videoWidth = 500.0f;
+        _editor.videoHeight = 400.0f;
     }
     return _editor;
 }

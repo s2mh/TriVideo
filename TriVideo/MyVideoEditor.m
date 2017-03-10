@@ -12,7 +12,7 @@
 @interface MyVideoEditor ()
 
 @property (nonatomic, readwrite, strong) AVMutableComposition *composition;
-@property (nonatomic, strong) AVMutableVideoComposition *videoComposition;
+@property (nonatomic, readwrite, strong) AVMutableVideoComposition *videoComposition;
 
 @end
 
@@ -57,15 +57,15 @@
         [compositionVideoTracks addObject:compositionVideoTrack];
     }
     
-    CMTimeRange targetRange = CMTimeRangeMake(CMTimeMakeWithSeconds(0, 1), CMTimeMakeWithSeconds(3, 1));
+    CMTimeRange targetTimeRange = CMTimeRangeMake(CMTimeMakeWithSeconds(0, 1), CMTimeMakeWithSeconds(3, 1));
     NSMutableArray<NSValue *> *naturalSizeValues = [NSMutableArray arrayWithCapacity:count];
 
     
     [compositionVideoTracks enumerateObjectsUsingBlock:^(AVMutableCompositionTrack * _Nonnull compositionVideoTrack, NSUInteger idx, BOOL * _Nonnull stop) {
         AVAsset *asset = [self.clips objectAtIndex:idx];
-        AVAssetTrack *clipVideoTrack = [asset tracksWithMediaType:AVMediaTypeVideo][0];
+        AVAssetTrack *clipVideoTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
         
-        [compositionVideoTrack insertTimeRange:targetRange
+        [compositionVideoTrack insertTimeRange:targetTimeRange
                                        ofTrack:clipVideoTrack
                                         atTime:kCMTimeZero
                                          error:nil];
@@ -73,7 +73,8 @@
     }];
     
     AVMutableVideoCompositionInstruction *compositionInstruction = [AVMutableVideoCompositionInstruction videoCompositionInstruction];
-    compositionInstruction.timeRange = targetRange;
+    compositionInstruction.timeRange = targetTimeRange;
+    
     NSMutableArray<AVMutableVideoCompositionLayerInstruction *> *layerInstructions = [NSMutableArray arrayWithCapacity:count];
     
     CGFloat clipX = 0.0f;
@@ -86,11 +87,20 @@
                                       clipY,
                                       ((i == 0) ? self.videoWidth : clipWidth),
                                       clipHeight);
-        AVMutableVideoCompositionLayerInstruction *compositionLayerInstruction = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:compositionVideoTracks[i]];
-        [compositionLayerInstruction setCropRectangle:clipFrame atTime:kCMTimeZero];
         
+        AVMutableCompositionTrack *compositionVideoTrack = compositionVideoTracks[i];
+        AVMutableVideoCompositionLayerInstruction *compositionLayerInstruction = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:compositionVideoTrack];
+        
+        CGSize naturalSize = compositionVideoTrack.naturalSize;
+        CGAffineTransform portraitTransform = CGAffineTransformMake(0, 1, -1, 0, naturalSize.height, 0);
+        CGRect portraitFrame = (CGRect){CGPointZero, naturalSize.height, naturalSize.width};
+        CGAffineTransform translatedAndScaledTransform = [self makeTransformFromRect:portraitFrame toRect:clipFrame];
+        CGAffineTransform clipTransform = CGAffineTransformConcat(portraitTransform, translatedAndScaledTransform);
+        
+        [compositionLayerInstruction setTransform:clipTransform atTime:kCMTimeZero];
         [layerInstructions addObject:compositionLayerInstruction];
-        if (!i) {
+        
+        if (i == 0) {
             clipY += clipHeight;
         } else {
             clipX += clipWidth;
@@ -98,6 +108,16 @@
     }
     compositionInstruction.layerInstructions = layerInstructions;
     videoComposition.instructions = @[compositionInstruction];
+}
+
+- (CGAffineTransform)makeTransformFromRect:(CGRect)fromRect toRect:(CGRect)toRect {    
+    CGAffineTransform scaleTransform = CGAffineTransformMakeScale(toRect.size.width  / fromRect.size.width,
+                                                                  toRect.size.height / fromRect.size.height);
+    CGRect scaledFrame = CGRectApplyAffineTransform(fromRect, scaleTransform);
+    CGAffineTransform translateTransform = CGAffineTransformMakeTranslation(CGRectGetMinX(toRect) - CGRectGetMinX(scaledFrame),
+                                                                            CGRectGetMinY(toRect) - CGRectGetMinY(scaledFrame));
+    return CGAffineTransformConcat(scaleTransform, translateTransform);
+    
 }
 
 @end

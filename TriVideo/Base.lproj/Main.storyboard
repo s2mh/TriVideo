@@ -6,6 +6,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="11757"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -13,9 +14,12 @@
         <scene sceneID="e93-72-NOd">
             <objects>
                 <navigationController id="LQs-2G-wVr" sceneMemberID="viewController">
-                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="tSj-xU-7EN">
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" misplaced="YES" id="tSj-xU-7EN">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="44"/>
                         <autoresizingMask key="autoresizingMask"/>
+                        <textAttributes key="titleTextAttributes">
+                            <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                        </textAttributes>
                     </navigationBar>
                     <connections>
                         <segue destination="BYZ-38-t0r" kind="relationship" relationship="rootViewController" id="CX7-iu-j0K"/>
@@ -28,8 +32,7 @@
         <!--TriVideo-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
-                <viewController title="TriVideo" id="BYZ-38-t0r" customClass="ViewController" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="ViewController" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="y3c-jy-aDJ"/>
                         <viewControllerLayoutGuide type="bottom" id="wfy-db-euE"/>
@@ -38,30 +41,48 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZKM-Q8-ews">
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZKM-Q8-ews">
                                 <rect key="frame" x="94" y="358" width="186" height="142"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Play TriVideo"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="21"/>
+                                <state key="normal" title="Play"/>
                                 <connections>
                                     <action selector="playEditedVideo:" destination="BYZ-38-t0r" eventType="touchUpInside" id="40a-6L-yLX"/>
                                     <action selector="selectVideos:" destination="BYZ-38-t0r" eventType="touchUpInside" id="qk8-Ib-ZVg"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="R86-Fy-nYc">
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="R86-Fy-nYc">
                                 <rect key="frame" x="29" y="142" width="316" height="142"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Select videos to make TriVideo"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="21"/>
+                                <state key="normal" title="Select &amp; Edit "/>
                                 <connections>
                                     <action selector="selectVideos:" destination="BYZ-38-t0r" eventType="touchUpInside" id="2v9-Hk-kOg"/>
                                 </connections>
                             </button>
+                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" ambiguous="YES" misplaced="YES" hidesWhenStopped="YES" style="whiteLarge" translatesAutoresizingMaskIntoConstraints="NO" id="K6Z-O9-Nze">
+                                <rect key="frame" x="169" y="313" width="37" height="37"/>
+                                <color key="color" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                            </activityIndicatorView>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstAttribute="trailingMargin" secondItem="K6Z-O9-Nze" secondAttribute="trailing" constant="153" id="25p-Yp-uXb"/>
+                            <constraint firstAttribute="trailingMargin" secondItem="R86-Fy-nYc" secondAttribute="trailing" constant="14" id="My5-Zc-LcG"/>
+                            <constraint firstItem="K6Z-O9-Nze" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="153" id="Ndr-RH-NX0"/>
+                            <constraint firstItem="R86-Fy-nYc" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="78" id="U7T-Ns-fxr"/>
+                            <constraint firstItem="R86-Fy-nYc" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="13" id="VSr-tD-bOw"/>
+                            <constraint firstItem="ZKM-Q8-ews" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="78" id="iJG-BZ-Fy8"/>
+                            <constraint firstAttribute="trailingMargin" secondItem="ZKM-Q8-ews" secondAttribute="trailing" constant="79" id="m5m-6c-bgm"/>
+                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="ZKM-Q8-ews" secondAttribute="bottom" constant="167" id="xDN-fJ-A5b"/>
+                        </constraints>
                     </view>
-                    <navigationItem key="navigationItem" id="Eq8-fh-Atj"/>
+                    <navigationItem key="navigationItem" title="TriVideo" id="Eq8-fh-Atj"/>
+                    <connections>
+                        <outlet property="loadingView" destination="K6Z-O9-Nze" id="8ff-8H-4Le"/>
+                    </connections>
                 </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-674" y="-1"/>
+            <point key="canvasLocation" x="-682" y="-1"/>
         </scene>
     </scenes>
 </document>
